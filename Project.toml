@@ -7,6 +7,7 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
 Gtk = "4c0ca9eb-093a-5379-98c5-f87ac0bbbf44"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 ExploreCMEODonnees = "ee43874e-6fa7-443f-bddd-2ac161bc3987"
 
 [extras]
@@ -18,4 +19,5 @@ test = ["Test"]
 [compat]
 Cairo = "0.6, 1.0"
 Gtk = "0.18, 1.0"
+HDF5 = "0.12.5"
 julia = "1"
