@@ -11,6 +11,7 @@ const PATH_DB = Ref("")
 
 include("base.jl")
 include("db_access.jl")
+include("gtk_ext.jl")
 include("gtk_base.jl")
 include("gtk_top.jl")
 

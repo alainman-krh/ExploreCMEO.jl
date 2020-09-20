@@ -1,4 +1,5 @@
 #db_access.jl: Write/read data to/from HDF5 "database".
+#-------------------------------------------------------------------------------
 
 
 #==Constants
@@ -37,8 +38,12 @@ function getpath_selattente(sel::ExploreSelection)
 	pfx = getpath_attentes(sel)
 	return "$pfx/$(sel.attente_idx)"
 end
+function getpath_content(sel::ExploreSelection)
+	pfx = getpath_selattente(sel)
+	return "$pfx/contenus"
+end
 
-#Open group, or return nothing if fails:
+#Open group, or return nothing !exist:
 function gopen_nothing(o, path::String)
 	if !HDF5.exists(o, path);
 		return nothing
@@ -55,6 +60,7 @@ function gopen_create(o, path::String)
 	end
 end
 
+#Open group, or return nothing if !exit:
 getgrp_root(db::HDF5.HDF5File) = gopen_nothing(db, "/")
 getgrp_subject(db::HDF5.HDF5File, sel::ExploreSelection) =
 	gopen_nothing(db, getpath_subject(sel))
@@ -64,6 +70,8 @@ getgrp_domains(db::HDF5.HDF5File, sel::ExploreSelection) =
 	gopen_nothing(db, getpath_domains(sel))
 getgrp_attentes(db::HDF5.HDF5File, sel::ExploreSelection) =
 	gopen_nothing(db, getpath_attentes(sel))
+getgrp_content(db::HDF5.HDF5File, sel::ExploreSelection) =
+	gopen_nothing(db, getpath_content(sel))
 
 #Returns subgroup, or nothing
 function getsubgrp_nothing(grp::HDF5.HDF5Group, name::String)
@@ -75,7 +83,7 @@ function getsubgrp_nothing(grp::HDF5.HDF5Group, name::String)
 end
 
 
-#==Read in attributes & deal with missing data
+#==Read in datasets & attributes (deal with missing data)
 ===============================================================================#
 read_attr(::Nothing, name::String, expType::Type, default) = default
 function read_attr(grp::HDF5.HDF5Group, name::String, expType::Type, default)
@@ -89,8 +97,15 @@ reada_srcdoc(grp) = read_attr(grp, AID_SRCDOC, String, MSG_NOSRCDOCINFO)
 reada_descr(grp) = read_attr(grp, AID_DESCR, String, "")
 reada_shortdescr(grp) = read_attr(grp, AID_DESCR_SHORT, String, "")
 
+function readds_safe(grp::HDF5.HDF5Group, name::String, expType::Type, default)
+	if !HDF5.exists(grp, name); return default; end
+	v = HDF5.d_read(grp, name)
+	if !isa(v, expType); return default; end
+	return v
+end
 
-#==Write attributes:
+
+#==Write datasets & attributes:
 ===============================================================================#
 function write_attr(grp::HDF5.HDF5Group, name::String, v)
 	if HDF5.exists(HDF5.attrs(grp), name)
@@ -102,6 +117,12 @@ writea_nelem(grp, v::Vector) = write_attr(grp, AID_NELEM, length(v))
 writea_srcdoc(grp, v::String) = write_attr(grp, AID_SRCDOC, v)
 writea_descr(grp, v::String) = write_attr(grp, AID_DESCR, v)
 writea_shortdescr(grp, v::String) = write_attr(grp, AID_DESCR_SHORT, v)
+
+function writeds_safe(grp::HDF5.HDF5Group, name::String, v)
+#	if HDF5.exists(grp, name); ; end
+	HDF5.d_write(grp, name, v)
+	return
+end
 
 
 #==Read in high-level fields
@@ -121,8 +142,8 @@ function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	if isnothing(grp)
 		for i in 1:3
 			id = getid_domain(i)
-			nom = "Dom $id"
-			push!(result, (i, id, nom))
+			descr = "Domaine $id"
+			push!(result, (i, id, descr))
 		end
 		return result
 	end
@@ -163,6 +184,21 @@ function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	return result
 end
 
+function read_content_list(db::HDF5.HDF5File, sel::ExploreSelection)
+	result = []
+	grp = getgrp_content(db, sel)
+	if isnothing(grp); return result; end
+
+	#Read in data:
+	nelem = reada_nelem(grp)
+	for i in 1:nelem
+		id = getid_content(sel.domain_idx, sel.attente_idx, i)
+		descr = readds_safe(grp, "$i", String, "")
+		push!(result, (i, id, descr))
+	end
+	return result
+end
+
 
 #==Write out high-level fields
 ===============================================================================#
@@ -174,6 +210,19 @@ function write_domain_descr(db::HDF5.HDF5File, sel::ExploreSelection, descr::Str
 	grp = gopen_create(db, getpath_seldomain(sel))
 	writea_descr(grp, descr)
 end
+function write_attente_descr(db::HDF5.HDF5File, sel::ExploreSelection, shortdescr::String, descr::String)
+	grp = gopen_create(db, getpath_selattente(sel))
+	writea_shortdescr(grp, shortdescr)
+	writea_descr(grp, descr)
+end
+function write_content_descr(db::HDF5.HDF5File, sel::ExploreSelection, descr::String)
+	grp = gopen_create(db, getpath_content(sel))
+	writeds_safe(grp, "$(sel.content_idx)", descr)
+end
+
+
+#Write whole lists at once (update element count)
+#-------------------------------------------------------------------------------
 function write_domain_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vector{String})
 	sel = deepcopy(sel)
 	for (i, descr) in enumerate(list)
@@ -184,11 +233,6 @@ function write_domain_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vecto
 	grp = gopen_create(db, getpath_domains(sel))
 	writea_nelem(grp, list)
 end
-function write_attente_descr(db::HDF5.HDF5File, sel::ExploreSelection, shortdescr::String, descr::String)
-	grp = gopen_create(db, getpath_selattente(sel))
-	writea_shortdescr(grp, shortdescr)
-	writea_descr(grp, descr)
-end
 function write_attente_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vector)
 	sel = deepcopy(sel)
 	for (i, elem) in enumerate(list)
@@ -198,6 +242,16 @@ function write_attente_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vect
 	end
 
 	grp = gopen_create(db, getpath_attentes(sel))
+	writea_nelem(grp, list)
+end
+function write_content_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vector)
+	sel = deepcopy(sel)
+	for (i, elem) in enumerate(list)
+		sel.content_idx = i
+		write_content_descr(db, sel, elem)
+	end
+
+	grp = gopen_create(db, getpath_content(sel))
 	writea_nelem(grp, list)
 end
 #Last line
