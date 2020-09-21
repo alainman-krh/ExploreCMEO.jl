@@ -20,5 +20,5 @@ test = ["Test"]
 [compat]
 Cairo = "0.6, 1.0"
 Gtk = "0.18, 1.0"
-HDF5 = "0.12.5"
+HDF5 = "0.13"
 julia = "1"
