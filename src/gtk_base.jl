@@ -5,6 +5,8 @@ import Gtk: get_gtk_property, set_gtk_property!, signal_connect, @guarded
 import Gtk: GConstants.GtkOrientation, GConstants.GtkSelectionMode
 import Gtk: GConstants, GAccessor
 import Gtk: GConstants.GtkAlign
+import Gtk: GConstants.GtkPackType #START, END
+import Gtk: GConstants.GtkWrapMode #NONE, CHAR, WORD, WORD_CHAR
 import Gtk: GConstants.GtkScrollablePolicy #MINIMUM, NATURAL
 import Gtk: GConstants.GtkPolicyType #ALWAYS, AUTOMATIC, NEVER, EXTERNAL
 import Gtk: GConstants.GdkModifierType #CONTROL, LOCK, SHIFT, MOD1, ...
@@ -13,6 +15,9 @@ import Gtk: GConstants.GtkAccelFlags #VISIBLE, LOCKED, MASK
 
 #==Types
 ===============================================================================#
+abstract type AbstractDialog; end
+struct NoDialog <: AbstractDialog; end
+
 abstract type WndState end #Identifies current state of the Explore window.
 struct WSNormal <: WndState; end #Default state
 struct WSUpdating <: WndState; end #Updating
@@ -33,6 +38,7 @@ mutable struct ExploreWnd
 	ent_attentesdesc::_Gtk.Entry
 	ls_content::_Gtk.ListStore
 	tv_content::_Gtk.TreeView
+	editdlg::AbstractDialog
 end
 
 
@@ -175,6 +181,7 @@ end
 
 #==Public interface
 ===============================================================================#
+
 #Overwrite show (inhibit dumping Gtk info):
 function Base.show(io::IO, ::MIME"text/plain", explore::ExploreWnd)
 	print(io, ExploreWnd, "(\"", explore.db.filename, "\")")
@@ -182,9 +189,8 @@ end
 
 refresh!(explore::ExploreWnd) = refresh!(explore.state, explore)
 
-function Base.close(explore::ExploreWnd)
-	window_close(explore.wnd)
-	return nothing
-end
+Base.close(dlg::NoDialog) = nothing
+Base.close(dlg::AbstractDialog) = window_close(dlg.wnd)
+Base.close(explore::ExploreWnd) = window_close(explore.wnd)
 
 #Last line

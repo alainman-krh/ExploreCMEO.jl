@@ -39,7 +39,7 @@ end
 FieldViewOpts() = FieldViewOpts(true, true, true)
 
 
-#==
+#==Create identifiers for different curriculum elements (ex: A1.1)
 ===============================================================================#
 function _valididx(args...)
 	for v in args
@@ -69,5 +69,33 @@ getid_attente(domain_idx::Int, attente_idx::Int) =
 getid_content(domain_idx::Int, attente_idx::Int, content_idx::Int) =
 	(_valididx(domain_idx, attente_idx, content_idx) ? _getid_content(domain_idx, attente_idx, content_idx) : "")
 
+
+#==Get identifiers for different field views
+===============================================================================#
+_getid(::AbstractFieldView) = ""
+_getid(::FViewDomain) = "Domaine"
+_getid(::FViewAttente) = "Attente"
+_getid(::FViewAttente_LongDescr) = _getid(FViewAttente())
+_getid(::FViewContent) = "Contenu d'Apprentissage"
+
+_getid(::AbstractFieldView, sel::ExploreSelection) = ""
+_getid(fv::FViewDomain, sel::ExploreSelection) =
+	string(_getid(fv), " ", getid_domain(sel.domain_idx))
+_getid(fv::FViewAttente, sel::ExploreSelection) =
+	string(_getid(fv), " ", getid_attente(sel.domain_idx, sel.attente_idx))
+_getid(fv::FViewAttente_LongDescr, sel::ExploreSelection) =
+	_getid(FViewAttente(), sel)
+_getid(fv::FViewContent, sel::ExploreSelection) =
+	string(_getid(fv), " ", getid_content(sel.domain_idx, sel.attente_idx, sel.content_idx))
+
+
+#==Accessing database file
+===============================================================================#
+function open_database(filepath::String, mode::String; log::Bool=true)
+	filepath = abspath(filepath)
+	db = HDF5.h5open(filepath, mode)
+	@info("Données source:\n$(db.filename)")
+	return db
+end
 
 #Last line

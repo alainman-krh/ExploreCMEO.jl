@@ -138,13 +138,14 @@ refresh!(::WSUpdating, explore::ExploreWnd) = nothing
 @guarded function cb_wnddestroyed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
 	close(explore.db)
 	@info("Fermeture de données")
+	close(explore.editdlg)
 	return #Known value
 end
 @guarded function cb_mnufileclose(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
 	close(explore)
 	nothing #Known value
 end
-@guarded function cb_mnufilecopy(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+@guarded function cb_mnucopy(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
 	opt = FieldViewOpts()
 	afview = _activefieldview(explore)
 	copystr = copyfv(afview, explore, opt)
@@ -152,12 +153,16 @@ end
 	@info("Copié:\n$copystr")
 	nothing #Known value
 end
-@guarded function cb_mnufilecopyall(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+@guarded function cb_mnucopyall(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
 	opt = FieldViewOpts()
 	afview = _activefieldview(explore)
 	copystr = copyallfv(afview, explore, opt)
 	clipboard_set_text(explore, copystr)
 	@info("Copié tout:\n$copystr")
+	nothing #Known value
+end
+@guarded function cb_mnueditfield(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+	show_editdlg(explore)
 	nothing #Known value
 end
 @guarded function cb_cb_subjects_changed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
@@ -208,7 +213,7 @@ function ExploreWnd(dbpath=PATH_DB[])
 		mnucopyall = Gtk_addmenuitem(mnuedit, "Copier Tout")
 		Gtk_addsep(mnuedit)
 		mnuaddentry = Gtk_addmenuitem(mnuedit, "Ajouter Entrée")
-		mnuremoveentry = Gtk_addmenuitem(mnuedit, "Supprimer Entrée")
+		mnuremoveentry = Gtk_addmenuitem(mnuedit, "Supprimer Dernière Entrée")
 		mnueditfield = Gtk_addmenuitem(mnuedit, "Modifier Élément/Champ")
 
 	#Add accelerator keys to menu items:
@@ -222,9 +227,9 @@ function ExploreWnd(dbpath=PATH_DB[])
 		push!(mnuaddentry, "activate", accel_group, GConstants.GDK_KEY_A,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
-		push!(mnuremoveentry, "activate", accel_group, GConstants.GDK_KEY_D,
-			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
-		)
+#		push!(mnuremoveentry, "activate", accel_group, GConstants.GDK_KEY_D,
+#			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
+#		)
 		push!(mnueditfield, "activate", accel_group, GConstants.GDK_KEY_E,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
@@ -301,7 +306,7 @@ function ExploreWnd(dbpath=PATH_DB[])
 		sel = GAccessor.selection(tv_content)
 
 	#Create container object & callbacks:
-	db = HDF5.h5open(dbpath, "r+")
+	db = open_database(dbpath, "r+")
 	wnd = Gtk.Window(vbox, "", 640, 480, true)
 		push!(wnd, accel_group)
 		set_gtk_property!(wnd, "title", "ExploreCMEO")
@@ -309,12 +314,14 @@ function ExploreWnd(dbpath=PATH_DB[])
 	explore = ExploreWnd(WSNormal(), ExploreSelection(), db,
 		wnd, cb_subjects, rb_grade_list, ent_sourcedoc,
 		ls_domains, tv_domains, ls_attentes, tv_attentes, ent_attentesdesc,
-		ls_content, tv_content
+		ls_content, tv_content, NoDialog()
 	)
 	signal_connect(cb_wnddestroyed, wnd, "destroy", Nothing, (), false, explore)
 	signal_connect(cb_mnufileclose, mnuquit, "activate", Nothing, (), false, explore)
-	signal_connect(cb_mnufilecopy, mnucopy, "activate", Nothing, (), false, explore)
-	signal_connect(cb_mnufilecopyall, mnucopyall, "activate", Nothing, (), false, explore)
+	signal_connect(cb_mnucopy, mnucopy, "activate", Nothing, (), false, explore)
+	signal_connect(cb_mnucopyall, mnucopyall, "activate", Nothing, (), false, explore)
+	signal_connect(cb_mnueditfield, mnueditfield, "activate", Nothing, (), false, explore)
+
 
 	signal_connect(cb_cb_subjects_changed, cb_subjects, "changed", Nothing, (), false, explore)
 	for rb in rb_grade_list

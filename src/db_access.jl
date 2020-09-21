@@ -1,11 +1,34 @@
 #db_access.jl: Write/read data to/from HDF5 "database".
 #-------------------------------------------------------------------------------
 
+#==Types
+===============================================================================#
+"Exception: Invalid element of curricculum"
+struct InvalidElement <: Exception
+	msg
+end
+
+"Exception: Missing path in database"
+struct MissingPath <: Exception
+	msg
+end
+
 
 #==Constants
 ===============================================================================#
+const DATA_UNKNOWNSRCDOC = "Source Inconnue???"
+const DATA_NEWDOMAIN = "Nouveau Domaine"
+const DATA_NEWATTENTE_SHORT = "NA"
+const DATA_NEWATTENTE = "Nouvelle attente"
+const DATA_NEWCONTENT = "Nouveau contenu"
+
 const MSG_NODATA = "Aucune donnée trouvée."
 const MSG_NOSRCDOCINFO = "Source non-spécifiée."
+const MSG_NOSUBJECT = "Aucun sujet sélectionné!"
+const MSG_CANNOTADDENTRY = "Incapable d'ajouter un item!"
+
+const ERROR_NOSUBJECT = InvalidElement(MSG_NOSUBJECT)
+const ERROR_CANNOTADDENTRY = ErrorException(MSG_CANNOTADDENTRY)
 
 #Attribute identifiers:
 const AID_NELEM = "NELEM"
@@ -43,6 +66,19 @@ function getpath_content(sel::ExploreSelection)
 	return "$pfx/contenus"
 end
 
+#==Constructors
+===============================================================================#
+function InvalidElement(msg::String)
+	return InvalidElement(msg)
+end
+
+function MissingPath(msg::String)
+	return MissingPath(msg)
+end
+
+
+#==Base accessors for database
+===============================================================================#
 #Open group, or return nothing !exist:
 function gopen_nothing(o, path::String)
 	if !HDF5.exists(o, path);
@@ -51,34 +87,21 @@ function gopen_nothing(o, path::String)
 		return HDF5.g_open(o, path)
 	end
 end
-#Open group, or create if !exist:
-function gopen_create(o, path::String)
-	if !HDF5.exists(o, path);
-		return HDF5.g_create(o, path)
-	else
-		return HDF5.g_open(o, path)
-	end
-end
-
-#Open group, or return nothing if !exit:
-getgrp_root(db::HDF5.HDF5File) = gopen_nothing(db, "/")
-getgrp_subject(db::HDF5.HDF5File, sel::ExploreSelection) =
-	gopen_nothing(db, getpath_subject(sel))
-getgrp_grade(db::HDF5.HDF5File, sel::ExploreSelection) =
-	gopen_nothing(db, getpath_grade(sel))
-getgrp_domains(db::HDF5.HDF5File, sel::ExploreSelection) =
-	gopen_nothing(db, getpath_domains(sel))
-getgrp_attentes(db::HDF5.HDF5File, sel::ExploreSelection) =
-	gopen_nothing(db, getpath_attentes(sel))
-getgrp_content(db::HDF5.HDF5File, sel::ExploreSelection) =
-	gopen_nothing(db, getpath_content(sel))
-
 #Returns subgroup, or nothing
 function getsubgrp_nothing(grp::HDF5.HDF5Group, name::String)
 	try #Don't know how to tell if subgroup exists (only if SOMETHING exists)
 		return HDF5.g_open(grp, name)
 	catch
 		return nothing
+	end
+end
+
+#Open group, or create if !exist:
+function gopen_create(o, path::String)
+	if !HDF5.exists(o, path);
+		return HDF5.g_create(o, path)
+	else
+		return HDF5.g_open(o, path)
 	end
 end
 
@@ -92,7 +115,10 @@ function read_attr(grp::HDF5.HDF5Group, name::String, expType::Type, default)
 	if !isa(attr, expType); return default; end
 	return attr
 end
-reada_nelem(grp) = read_attr(grp, AID_NELEM, Int64, 0)
+function reada_nelem(grp)
+	nelem = read_attr(grp, AID_NELEM, Int64, 0)
+	return Int(max(0, nelem)) #Limit >= 0
+end
 reada_srcdoc(grp) = read_attr(grp, AID_SRCDOC, String, MSG_NOSRCDOCINFO)
 reada_descr(grp) = read_attr(grp, AID_DESCR, String, "")
 reada_shortdescr(grp) = read_attr(grp, AID_DESCR_SHORT, String, "")
@@ -125,21 +151,86 @@ function writeds_safe(grp::HDF5.HDF5Group, name::String, v)
 end
 
 
-#==Read in high-level fields
-===============================================================================#
-read_subjects(db::HDF5.HDF5File) = names(getgrp_root(db))
 
-function read_sourcedoc(db::HDF5.HDF5File, sel::ExploreSelection)
-	ggrp = getgrp_grade(db, sel)
-	if isnothing(ggrp); return MSG_NODATA; end
+#==Validation
+===============================================================================#
+function validate_subject(sel::ExploreSelection)
+	nosubject = (strip(sel.subject) == "")
+	if nosubject; throw(ERROR_NOSUBJECT); end
+	return
+end
+function validate_grade(sel::ExploreSelection)
+	validate_subject(sel)
+	if sel.grade_idx < 1; throw(InvalidElement(getpath_grade(sel))); end
+	return
+end
+function validate_domain(sel::ExploreSelection)
+	validate_grade(sel)
+	if sel.domain_idx < 1; throw(InvalidElement(getpath_domains(sel))); end
+	return
+end
+function validate_attente(sel::ExploreSelection)
+	validate_domain(sel)
+	if sel.attente_idx < 1; throw(InvalidElement(getpath_attentes(sel))); end
+	return
+end
+function validate_content(sel::ExploreSelection)
+	validate_attente(sel)
+	if sel.content_idx < 1; throw(InvalidElement(getpath_content(sel))); end
+	return
+end
+
+#Must actually exist in db:
+#-------------------------------------------------------------------------------
+function validateexists_simple(db::HDF5.HDF5File, path::String)
+	grp = gopen_nothing(db, path)
+	if isnothing(grp); throw(MissingPath(path)); end
+	return
+end
+function validateexists_listitem(db::HDF5.HDF5File, path::String, itemidx::Int)
+	grp = gopen_nothing(db, path)
+	if isnothing(grp); throw(MissingPath(path)); end
+	if itemidx > reada_nelem(grp); throw(MissingPath(path)); end
+	return
+end
+function validateexists_subject(db::HDF5.HDF5File, sel::ExploreSelection)
+	validate_subject(sel)
+	validateexists_simple(db, getpath_subject(sel))
+end
+function validateexists_grade(db::HDF5.HDF5File, sel::ExploreSelection)
+	validateexists_subject(db, sel)
+	validateexists_simple(db, getpath_grade(sel))
+end
+function validateexists_domain(db::HDF5.HDF5File, sel::ExploreSelection)
+	validateexists_grade(db, sel)
+	validateexists_listitem(db, getpath_domains(sel), sel.domain_idx)
+end
+function validateexists_attente(db::HDF5.HDF5File, sel::ExploreSelection)
+	validateexists_domain(db, sel)
+	validateexists_listitem(db, getpath_attentes(sel), sel.attente_idx)
+end
+function validateexists_content(db::HDF5.HDF5File, sel::ExploreSelection)
+	validateexists_attente(db, sel)
+	validateexists_listitem(db, getpath_content(sel), sel.content_idx)
+end
+
+
+#==Read in high-level fields. Returns nothing on error.
+===============================================================================#
+read_subjects(db::HDF5.HDF5File) = names(gopen_nothing(db, "/"))
+
+function read_sourcedoc(db::HDF5.HDF5File, sel::ExploreSelection, default=MSG_NODATA)
+	ggrp = gopen_nothing(db, getpath_grade(sel))
+	if isnothing(ggrp); return default; end
 	return reada_srcdoc(ggrp)
 end
 
-function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection)
+function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
 	result = []
-	grp = getgrp_domains(db, sel)
-#	if isnothing(grp); return result; end
+	grp = gopen_nothing(db, getpath_domains(sel))
 	if isnothing(grp)
+		return default
+		#unreachable test data:
 		for i in 1:3
 			id = getid_domain(i)
 			descr = "Domaine $id"
@@ -159,11 +250,12 @@ function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	return result
 end
 
-function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection)
+function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
 	result = []
-	grp = getgrp_attentes(db, sel)
-#	if isnothing(grp); return result; end
+	grp = gopen_nothing(db, getpath_attentes(sel))
 	if isnothing(grp)
+		return default
+		#unreachable test data:
 		for i in 1:3
 			id = getid_attente(sel.domain_idx, i)
 			shortdescr = "Attente $id"
@@ -184,10 +276,10 @@ function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	return result
 end
 
-function read_content_list(db::HDF5.HDF5File, sel::ExploreSelection)
+function read_content_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
 	result = []
-	grp = getgrp_content(db, sel)
-	if isnothing(grp); return result; end
+	grp = gopen_nothing(db, getpath_content(sel))
+	if isnothing(grp); return default; end
 
 	#Read in data:
 	nelem = reada_nelem(grp)
@@ -200,7 +292,7 @@ function read_content_list(db::HDF5.HDF5File, sel::ExploreSelection)
 end
 
 
-#==Write out high-level fields
+#==Write out high-level fields. Use createslot_* or validateexists_* first!
 ===============================================================================#
 function write_sourcedoc(db::HDF5.HDF5File, sel::ExploreSelection, v::String)
 	grp = gopen_create(db, getpath_grade(sel))
@@ -221,8 +313,66 @@ function write_content_descr(db::HDF5.HDF5File, sel::ExploreSelection, descr::St
 end
 
 
-#Write whole lists at once (update element count)
-#-------------------------------------------------------------------------------
+#==Create slot: Add new item to db (throw exception if cannot; return true if success)
+===============================================================================#
+function createslot_subject(db::HDF5.HDF5File, sel::ExploreSelection)
+	validate_subject(sel)
+	grp = gopen_create(db, getpath_subject(sel))
+	writea_srcdoc(grp, v)
+	return true
+end
+#Don't really need to explicitly create subject. Create source doc info instead:
+function createslot_srcdoc(db::HDF5.HDF5File, sel::ExploreSelection)
+	validate_grade(sel) #Otherwise, will generate garbage
+	srcstr = read_sourcedoc(db, sel, nothing)
+	if !isnothing(srcstr); return false; end #Don't overwrite, but no exception
+	grp = gopen_create(db, getpath_subject(sel))
+	write_sourcedoc(db, sel, DATA_UNKNOWNSRCDOC)
+	return true #Created new slot
+end
+function createslot_domain(db::HDF5.HDF5File, sel::ExploreSelection)
+	createslot_srcdoc(db, sel) #Just in case doesn't exist / also validates
+	#Don't really need to validate anything else before creating...
+	dlist = read_domain_list(db, sel, nothing)
+	if isnothing(dlist); dlist = []; end
+	push!(dlist, DATA_NEWDOMAIN) #Add something to compute length
+	sel.domain_idx = length(dlist)
+	grp = gopen_create(db, getpath_domains(sel))
+	write_domain_descr(db, sel, DATA_NEWDOMAIN)
+	writea_nelem(grp, dlist)
+	return
+end
+function createslot_attente(db::HDF5.HDF5File, sel::ExploreSelection)
+	validateexists_domain(db, sel) #Don't create if parent nodes don't exist
+	dlist = read_attente_list(db, sel, nothing)
+	if isnothing(dlist); dlist = []; end
+	push!(dlist, DATA_NEWATTENTE) #Add something to compute length
+	sel.attente_idx = length(dlist)
+	grp = gopen_create(db, getpath_attentes(sel))
+	write_attente_descr(db, sel, DATA_NEWATTENTE_SHORT, DATA_NEWATTENTE)
+	writea_nelem(grp, dlist)
+	return
+end
+function createslot_content(db::HDF5.HDF5File, sel::ExploreSelection)
+	validateexists_attente(db, sel) #Don't create if parent nodes don't exist
+	dlist = read_content_list(db, sel, nothing)
+	if isnothing(dlist); dlist = []; end
+	push!(dlist, DATA_NEWCONTENT) #Add something to compute length
+	sel.content_idx = length(dlist)
+	grp = gopen_create(db, getpath_content(sel))
+	write_content_descr(db, sel, DATA_NEWCONTENT)
+	writea_nelem(grp, dlist)
+	return
+end
+
+
+#==Write functions for list of elements
+===============================================================================#
+#=NOTE
+ - Write whole lists at once & update element count.
+ - Not very robust.
+ - Meant to manually add data using scripts.
+=#
 function write_domain_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vector{String})
 	sel = deepcopy(sel)
 	for (i, descr) in enumerate(list)
@@ -254,4 +404,6 @@ function write_content_list(db::HDF5.HDF5File, sel::ExploreSelection, list::Vect
 	grp = gopen_create(db, getpath_content(sel))
 	writea_nelem(grp, list)
 end
+
+
 #Last line
