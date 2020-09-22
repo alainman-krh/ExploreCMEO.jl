@@ -1,5 +1,17 @@
 # ExploreCMEO.jl: Explorer les curriculums du Ministère (MÉO)
 
+| <img src="://raw.githubusercontent.com/alainman-krh/ExploreCMEODonnees.jl/master/images/ExploreCMEO_fleche.png" width="425"> |
+| :---: |
+
+## Description
+
+ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissages des Curriculums du Ministère de l'Éducation de l'Ontario (MÉO).
+ - Une seule application pour tout les curriculums (une fois les données toutes entrées dans ExploreCMEO).
+ - Exploration plus rapide qu'avec les sources pdf ou web.
+ - Schéma de numérotation cohérent pour domaines/attentes/contenus pour tous les sujets.
+ - Copie des données plus facile!
+   - Ex: pas besoin de ré-assembler les contenus d'apprentissage qui ont des bris de ligne dans les .pdf
+
 ## Installation
  1. Télécharger & installer une version récente du language de programmation (scientifique) Julia:
     - <https://julialang.org/downloads/></br>
