@@ -72,7 +72,7 @@ function _populate(explore::ExploreWnd)
 		set_gtk_property!(explore.ent_sourcedoc, "text", sdinfo)
 
 	dlist = read_domain_list(explore.db, sel)
-		if isnothing(dlist); dlist = [DATA_NODOMAIN]; end
+		if isnothing(dlist)||isempty(dlist); dlist = [DATA_NODOMAIN]; end
 		sel.domain_idx = min(sel.domain_idx, length(dlist))
 		empty!(explore.ls_domains)
 		for d in dlist
@@ -84,7 +84,7 @@ function _populate(explore::ExploreWnd)
 		end
 
 	alist = read_attente_list(explore.db, sel)
-		if isnothing(alist); alist = [DATA_NOATTENTE]; end
+		if isnothing(alist)||isempty(alist); alist = [DATA_NOATTENTE]; end
 		sel.attente_idx = min(sel.attente_idx, length(alist))
 		descr = ""
 		empty!(explore.ls_attentes)
@@ -99,7 +99,7 @@ function _populate(explore::ExploreWnd)
 		set_gtk_property!(explore.ent_attentesdesc, "text", descr)
 
 	clist = read_content_list(explore.db, sel)
-		if isnothing(clist); clist = [DATA_NOCONTENT]; end
+		if isnothing(clist)||isempty(alist); clist = [DATA_NOCONTENT]; end
 		sel.content_idx = min(sel.content_idx, length(clist))
 		descr = ""
 		empty!(explore.ls_content)
