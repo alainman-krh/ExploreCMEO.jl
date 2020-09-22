@@ -89,41 +89,45 @@ function _build_content_str(v::Tuple, opt::FieldViewOpts)
 	end
 	return join(abuf, " ")
 end
-copyfv(::AbstractFieldView, explore::ExploreWnd, opt::FieldViewOpts) = "" #Default
+copyfv(::AbstractFieldView, explore::ExploreWnd, opt::FieldViewOpts) = nothing
 copyfv(::FViewSrcDoc, explore::ExploreWnd, opt::FieldViewOpts) =
 	read_sourcedoc(explore.db, explore.sel)
 function copyfv(::FViewDomain, explore::ExploreWnd, opt::FieldViewOpts)
 	sel = explore.sel
 	dlist = read_domain_list(explore.db, sel)
+	if isnothing(dlist); return nothing; end
 	if sel.domain_idx in 1:length(dlist)
 		return _build_domain_str(dlist[sel.domain_idx], opt)
 	end
-	return ""
+	return nothing
 end
 function copyfv(::FViewAttente, explore::ExploreWnd, opt::FieldViewOpts)
 	sel = explore.sel
 	dlist = read_attente_list(explore.db, sel)
+	if isnothing(dlist); return nothing; end
 	if sel.attente_idx in 1:length(dlist)
 		return _build_attente_str(dlist[sel.attente_idx], opt)
 	end
-	return ""
+	return nothing
 end
 function copyfv(::FViewAttente_LongDescr, explore::ExploreWnd, opt::FieldViewOpts)
 	sel = explore.sel
 	opt = FieldViewOpts(opt.include_id, false, true) #Copy specifically long description
 	dlist = read_attente_list(explore.db, sel)
+	if isnothing(dlist); return nothing; end
 	if sel.attente_idx in 1:length(dlist)
 		return _build_attente_str(dlist[sel.attente_idx], opt)
 	end
-	return ""
+	return nothing
 end
 function copyfv(::FViewContent, explore::ExploreWnd, opt::FieldViewOpts)
 	sel = explore.sel
 	dlist = read_content_list(explore.db, sel)
+	if isnothing(dlist); return nothing; end
 	if sel.content_idx in 1:length(dlist)
 		return _build_content_str(dlist[sel.content_idx], opt)
 	end
-	return ""
+	return nothing
 end
 
 copyallfv(fv::AbstractFieldView, explore::ExploreWnd, opt::FieldViewOpts) =
@@ -131,6 +135,7 @@ copyallfv(fv::AbstractFieldView, explore::ExploreWnd, opt::FieldViewOpts) =
 function copyallfv(::FViewDomain, explore::ExploreWnd, opt::FieldViewOpts)
 	abuf = String[]
 	dlist = read_domain_list(explore.db, explore.sel)
+	if isnothing(dlist); return nothing; end
 	for data in dlist
 		push!(abuf, _build_domain_str(data, opt))
 	end
@@ -139,6 +144,7 @@ end
 function copyallfv(::FViewAttente, explore::ExploreWnd, opt::FieldViewOpts)
 	abuf = String[]
 	dlist = read_attente_list(explore.db, explore.sel)
+	if isnothing(dlist); return nothing; end
 	for data in dlist
 		push!(abuf, _build_attente_str(data, opt))
 	end
@@ -147,6 +153,7 @@ end
 function copyallfv(::FViewContent, explore::ExploreWnd, opt::FieldViewOpts)
 	abuf = String[]
 	dlist = read_content_list(explore.db, explore.sel)
+	if isnothing(dlist); return nothing; end
 	for data in dlist
 		push!(abuf, _build_content_str(data, opt))
 	end
@@ -156,6 +163,9 @@ end
 
 #==Helper functions
 ===============================================================================#
+function clipboard_set_text(explore::ExploreWnd, ::Nothing)
+	#Do nothing; maybe clear clipboard??
+end
 function clipboard_set_text(explore::ExploreWnd, txtstr::String)
 	clipboard = GAccessor.clipboard(explore.wnd, GTK_SELECTION_CLIPBOARD)
 	clipboard_set_text(clipboard, txtstr, -1)

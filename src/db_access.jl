@@ -16,11 +16,15 @@ end
 
 #==Constants
 ===============================================================================#
-const DATA_UNKNOWNSRCDOC = "Source Inconnue???"
-const DATA_NEWDOMAIN = "Nouveau Domaine"
-const DATA_NEWATTENTE_SHORT = "NA"
+const DATA_UNKNOWNSRCDOC = "Source inconnue???"
+const DATA_NEWDOMAIN = "Nouveau domaine"
 const DATA_NEWATTENTE = "Nouvelle attente"
+const DATA_NEWATTENTE_SHORT = "NA"
 const DATA_NEWCONTENT = "Nouveau contenu"
+
+const DATA_NODOMAIN = (0, "", "Aucun domaine")
+const DATA_NOATTENTE = (0, "", "Aucune attente", "Aucune attente")
+const DATA_NOCONTENT = (0, "", "Aucun contenu")
 
 const MSG_NODATA = "Aucune donnée trouvée."
 const MSG_NOSRCDOCINFO = "Source non-spécifiée."
@@ -219,17 +223,17 @@ end
 ===============================================================================#
 read_subjects(db::HDF5.HDF5File) = names(gopen_nothing(db, "/"))
 
-function read_sourcedoc(db::HDF5.HDF5File, sel::ExploreSelection, default=MSG_NODATA)
+function read_sourcedoc(db::HDF5.HDF5File, sel::ExploreSelection)
 	ggrp = gopen_nothing(db, getpath_grade(sel))
-	if isnothing(ggrp); return default; end
+	if isnothing(ggrp); return nothing; end
 	return reada_srcdoc(ggrp)
 end
 
-function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
+function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	result = []
 	grp = gopen_nothing(db, getpath_domains(sel))
 	if isnothing(grp)
-		return default
+		return nothing
 		#unreachable test data:
 		for i in 1:3
 			id = getid_domain(i)
@@ -250,11 +254,11 @@ function read_domain_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
 	return result
 end
 
-function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
+function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	result = []
 	grp = gopen_nothing(db, getpath_attentes(sel))
 	if isnothing(grp)
-		return default
+		return nothing
 		#unreachable test data:
 		for i in 1:3
 			id = getid_attente(sel.domain_idx, i)
@@ -276,10 +280,10 @@ function read_attente_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
 	return result
 end
 
-function read_content_list(db::HDF5.HDF5File, sel::ExploreSelection, default=[])
+function read_content_list(db::HDF5.HDF5File, sel::ExploreSelection)
 	result = []
 	grp = gopen_nothing(db, getpath_content(sel))
-	if isnothing(grp); return default; end
+	if isnothing(grp); return nothing; end
 
 	#Read in data:
 	nelem = reada_nelem(grp)
@@ -324,7 +328,7 @@ end
 #Don't really need to explicitly create subject. Create source doc info instead:
 function createslot_srcdoc(db::HDF5.HDF5File, sel::ExploreSelection)
 	validate_grade(sel) #Otherwise, will generate garbage
-	srcstr = read_sourcedoc(db, sel, nothing)
+	srcstr = read_sourcedoc(db, sel)
 	if !isnothing(srcstr); return false; end #Don't overwrite, but no exception
 	grp = gopen_create(db, getpath_subject(sel))
 	write_sourcedoc(db, sel, DATA_UNKNOWNSRCDOC)
@@ -333,7 +337,7 @@ end
 function createslot_domain(db::HDF5.HDF5File, sel::ExploreSelection)
 	createslot_srcdoc(db, sel) #Just in case doesn't exist / also validates
 	#Don't really need to validate anything else before creating...
-	dlist = read_domain_list(db, sel, nothing)
+	dlist = read_domain_list(db, sel)
 	if isnothing(dlist); dlist = []; end
 	push!(dlist, DATA_NEWDOMAIN) #Add something to compute length
 	sel.domain_idx = length(dlist)
@@ -344,7 +348,7 @@ function createslot_domain(db::HDF5.HDF5File, sel::ExploreSelection)
 end
 function createslot_attente(db::HDF5.HDF5File, sel::ExploreSelection)
 	validateexists_domain(db, sel) #Don't create if parent nodes don't exist
-	dlist = read_attente_list(db, sel, nothing)
+	dlist = read_attente_list(db, sel)
 	if isnothing(dlist); dlist = []; end
 	push!(dlist, DATA_NEWATTENTE) #Add something to compute length
 	sel.attente_idx = length(dlist)
@@ -355,7 +359,7 @@ function createslot_attente(db::HDF5.HDF5File, sel::ExploreSelection)
 end
 function createslot_content(db::HDF5.HDF5File, sel::ExploreSelection)
 	validateexists_attente(db, sel) #Don't create if parent nodes don't exist
-	dlist = read_content_list(db, sel, nothing)
+	dlist = read_content_list(db, sel)
 	if isnothing(dlist); dlist = []; end
 	push!(dlist, DATA_NEWCONTENT) #Add something to compute length
 	sel.content_idx = length(dlist)

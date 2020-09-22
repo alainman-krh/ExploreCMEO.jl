@@ -68,9 +68,11 @@ function _populate(explore::ExploreWnd)
 	Gtk.gtk_toggle_button_set_active(explore.rb_grade_list[sel.grade_idx], true)
 
 	sdinfo = read_sourcedoc(explore.db, sel)
+		if isnothing(sdinfo); sdinfo = MSG_NODATA; end
 		set_gtk_property!(explore.ent_sourcedoc, "text", sdinfo)
 
 	dlist = read_domain_list(explore.db, sel)
+		if isnothing(dlist); dlist = [DATA_NODOMAIN]; end
 		sel.domain_idx = min(sel.domain_idx, length(dlist))
 		empty!(explore.ls_domains)
 		for d in dlist
@@ -82,6 +84,7 @@ function _populate(explore::ExploreWnd)
 		end
 
 	alist = read_attente_list(explore.db, sel)
+		if isnothing(alist); alist = [DATA_NOATTENTE]; end
 		sel.attente_idx = min(sel.attente_idx, length(alist))
 		descr = ""
 		empty!(explore.ls_attentes)
@@ -96,6 +99,7 @@ function _populate(explore::ExploreWnd)
 		set_gtk_property!(explore.ent_attentesdesc, "text", descr)
 
 	clist = read_content_list(explore.db, sel)
+		if isnothing(clist); clist = [DATA_NOCONTENT]; end
 		sel.content_idx = min(sel.content_idx, length(clist))
 		descr = ""
 		empty!(explore.ls_content)
@@ -159,6 +163,14 @@ end
 	copystr = copyallfv(afview, explore, opt)
 	clipboard_set_text(explore, copystr)
 	@info("Copié tout:\n$copystr")
+	nothing #Known value
+end
+@guarded function cb_mnuaddentry(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+	try
+		a
+	catch
+	end
+#	show_editdlg(explore)
 	nothing #Known value
 end
 @guarded function cb_mnueditfield(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
@@ -320,6 +332,7 @@ function ExploreWnd(dbpath=PATH_DB[])
 	signal_connect(cb_mnufileclose, mnuquit, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnucopy, mnucopy, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnucopyall, mnucopyall, "activate", Nothing, (), false, explore)
+	signal_connect(cb_mnuaddentry, mnuaddentry, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnueditfield, mnueditfield, "activate", Nothing, (), false, explore)
 
 

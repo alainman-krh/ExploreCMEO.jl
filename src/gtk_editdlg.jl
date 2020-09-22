@@ -56,7 +56,7 @@ function read_editdata(dlg::ExploreEditDlg, fv::FViewSrcDoc)
 	catch
 		createslot_srcdoc(db, sel) #Throws error if cannot
 	end
-	srcstr = read_sourcedoc(dlg.explore.db, sel, nothing)
+	srcstr = read_sourcedoc(dlg.explore.db, sel)
 	if isnothing(srcstr); throw(ERROR_CANNOTEDIT); end
 	dlg.data.descr = srcstr
 	return
@@ -73,7 +73,7 @@ function read_editdata(dlg::ExploreEditDlg, fv::FViewDomain)
 			rethrow(e)
 		end
 	end
-	dlist = read_domain_list(dlg.explore.db, sel, nothing)
+	dlist = read_domain_list(dlg.explore.db, sel)
 	if isnothing(dlist); throw(ERROR_CANNOTEDIT); end
 	sel.domain_idx = clamp(sel.domain_idx, 1, length(dlist))
 	data = dlist[sel.domain_idx]
@@ -92,7 +92,7 @@ function read_editdata(dlg::ExploreEditDlg, fv::FViewAttente)
 			rethrow(e)
 		end
 	end
-	dlist = read_attente_list(dlg.explore.db, sel, nothing)
+	dlist = read_attente_list(dlg.explore.db, sel)
 	if isnothing(dlist); throw(ERROR_CANNOTEDIT); end
 	sel.attente_idx = clamp(sel.attente_idx, 1, length(dlist))
 	data = dlist[sel.attente_idx]
@@ -114,7 +114,7 @@ function read_editdata(dlg::ExploreEditDlg, fv::FViewContent)
 			rethrow(e)
 		end
 	end
-	dlist = read_content_list(dlg.explore.db, sel, nothing)
+	dlist = read_content_list(dlg.explore.db, sel)
 	if isnothing(dlist); throw(ERROR_CANNOTEDIT); end
 	sel.content_idx = clamp(sel.content_idx, 1, length(dlist))
 	data = dlist[sel.content_idx]
