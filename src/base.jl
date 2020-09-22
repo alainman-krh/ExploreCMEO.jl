@@ -47,7 +47,7 @@ function _valididx(args...)
 	end
 	return true
 end
-function _getid_grade(grade_idx::Int)
+function getid_grade(grade_idx::Int)
 	if grade_idx in (1:length(LIST_GRADEID))
 		return LIST_GRADEID[grade_idx]
 	else
@@ -72,21 +72,25 @@ getid_content(domain_idx::Int, attente_idx::Int, content_idx::Int) =
 
 #==Get identifiers for different field views
 ===============================================================================#
-_getid(::AbstractFieldView) = ""
-_getid(::FViewDomain) = "Domaine"
-_getid(::FViewAttente) = "Attente"
-_getid(::FViewAttente_LongDescr) = _getid(FViewAttente())
-_getid(::FViewContent) = "Contenu d'Apprentissage"
+getlabel(::AbstractFieldView) = ""
+getlabel(::FViewSrcDoc) = "Document source"
+getlabel(::FViewDomain) = "Domaine"
+getlabel(::FViewAttente) = "Attente"
+getlabel(::FViewAttente_LongDescr) = getlabel(FViewAttente())
+getlabel(::FViewContent) = "Contenu d'Apprentissage"
 
-_getid(::AbstractFieldView, sel::ExploreSelection) = ""
-_getid(fv::FViewDomain, sel::ExploreSelection) =
-	string(_getid(fv), " ", getid_domain(sel.domain_idx))
-_getid(fv::FViewAttente, sel::ExploreSelection) =
-	string(_getid(fv), " ", getid_attente(sel.domain_idx, sel.attente_idx))
-_getid(fv::FViewAttente_LongDescr, sel::ExploreSelection) =
-	_getid(FViewAttente(), sel)
-_getid(fv::FViewContent, sel::ExploreSelection) =
-	string(_getid(fv), " ", getid_content(sel.domain_idx, sel.attente_idx, sel.content_idx))
+getid(::AbstractFieldView, sel::ExploreSelection) = ""
+getid(fv::FViewDomain, sel::ExploreSelection) =
+	getid_domain(sel.domain_idx)
+getid(fv::FViewAttente, sel::ExploreSelection) =
+	getid_attente(sel.domain_idx, sel.attente_idx)
+getid(fv::FViewAttente_LongDescr, sel::ExploreSelection) =
+	getid(FViewAttente(), sel)
+getid(fv::FViewContent, sel::ExploreSelection) =
+	getid_content(sel.domain_idx, sel.attente_idx, sel.content_idx)
+
+getlabelledid(fv::AbstractFieldView, sel::ExploreSelection) =
+	string(getlabel(fv), " ", getid(fv, sel))
 
 
 #==Accessing database file

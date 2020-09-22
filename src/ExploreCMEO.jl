@@ -10,6 +10,7 @@ const PATH_DB = Ref("./ExploreCMEO.h5") #In cwd
 
 include("base.jl")
 include("db_access.jl")
+include("dbaccess_fieldview.jl")
 include("gtk_ext.jl")
 include("gtk_base.jl")
 include("gtk_editdlg.jl")

@@ -2,6 +2,11 @@
 #-------------------------------------------------------------------------------
 
 
+#==Constants
+===============================================================================#
+const MSG_DELETE = "Supprimer dernière entrée"
+
+
 #==Types
 ===============================================================================#
 
@@ -10,10 +15,10 @@
 ===============================================================================#
 function _scan(explore::ExploreWnd)
 	sel = explore.sel #Alias
-		sel.grade_idx = 0
-		sel.domain_idx = 0
-		sel.attente_idx = 0
-#		sel.content_idx = 0
+		sel.grade_idx = 1
+		sel.domain_idx = 1
+		sel.attente_idx = 1
+		sel.content_idx = 1
 
 	sel_subject = GAccessor.active_text(explore.cb_subjects)
 	sel.subject = (sel_subject != C_NULL) ? unsafe_string(sel_subject) : ""
@@ -56,12 +61,13 @@ function _populate(explore::ExploreWnd)
 	sel = explore.sel #Alias
 
 	subject_list = read_subjects(explore.db)
+		if length(subject_list)<1; subject_list = ["Français"]; end
 		empty!(explore.cb_subjects)
 		for v in subject_list
 		  push!(explore.cb_subjects, v)
 		end
 		idx = findfirst((x)->(sel.subject==x), subject_list)
-		if isnothing(idx); idx = 0; end
+		if isnothing(idx); idx = 1; end
 		set_gtk_property!(explore.cb_subjects, "active", idx-1) #Set active element
 
 	sel.grade_idx = max(1, min(sel.grade_idx, length(explore.rb_grade_list)))
@@ -73,43 +79,37 @@ function _populate(explore::ExploreWnd)
 
 	dlist = read_domain_list(explore.db, sel)
 		if isnothing(dlist)||isempty(dlist); dlist = [DATA_NODOMAIN]; end
-		sel.domain_idx = min(sel.domain_idx, length(dlist))
+		sel.domain_idx = clamp(sel.domain_idx, 1, length(dlist))
 		empty!(explore.ls_domains)
 		for d in dlist
 			push!(explore.ls_domains, d)
 		end
-		if sel.domain_idx > 0
-			iter = Gtk.iter_from_index(explore.ls_domains, sel.domain_idx) #1-based wrapper!
-			Gtk.select!(GAccessor.selection(explore.tv_domains), iter)
-		end
+		iter = Gtk.iter_from_index(explore.ls_domains, sel.domain_idx) #1-based wrapper!
+		Gtk.select!(GAccessor.selection(explore.tv_domains), iter)
 
 	alist = read_attente_list(explore.db, sel)
 		if isnothing(alist)||isempty(alist); alist = [DATA_NOATTENTE]; end
-		sel.attente_idx = min(sel.attente_idx, length(alist))
+		sel.attente_idx = clamp(sel.attente_idx, 1, length(alist))
 		descr = ""
 		empty!(explore.ls_attentes)
 		for a in alist
 			push!(explore.ls_attentes, a)
 		end
-		if sel.attente_idx > 0
-			iter = Gtk.iter_from_index(explore.ls_attentes, sel.attente_idx) #1-based wrapper!
-			Gtk.select!(GAccessor.selection(explore.tv_attentes), iter)
-			descr = alist[sel.attente_idx][4]
-		end
+		iter = Gtk.iter_from_index(explore.ls_attentes, sel.attente_idx) #1-based wrapper!
+		Gtk.select!(GAccessor.selection(explore.tv_attentes), iter)
+		descr = alist[sel.attente_idx][4]
 		set_gtk_property!(explore.ent_attentesdesc, "text", descr)
 
 	clist = read_content_list(explore.db, sel)
 		if isnothing(clist)||isempty(alist); clist = [DATA_NOCONTENT]; end
-		sel.content_idx = min(sel.content_idx, length(clist))
+		sel.content_idx = clamp(sel.content_idx, 1, length(clist))
 		descr = ""
 		empty!(explore.ls_content)
 		for c in clist
 			push!(explore.ls_content, c)
 		end
-		if sel.content_idx > 0
-			iter = Gtk.iter_from_index(explore.ls_content, sel.content_idx) #1-based wrapper!
-			Gtk.select!(GAccessor.selection(explore.tv_content), iter)
-		end
+		iter = Gtk.iter_from_index(explore.ls_content, sel.content_idx) #1-based wrapper!
+		Gtk.select!(GAccessor.selection(explore.tv_content), iter)
 
 	return
 end
@@ -166,11 +166,31 @@ end
 	nothing #Known value
 end
 @guarded function cb_mnuaddentry(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+	afview = _activefieldview(explore)
 	try
-		a
-	catch
+		addentry(afview, explore.db, explore.sel)
+	catch e
+		@warn(e)
 	end
-#	show_editdlg(explore)
+	refresh!(explore)
+	nothing #Known value
+end
+@guarded function cb_mnuremoveentry(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+	afview = _activefieldview(explore)
+	id = getlabelledid(afview, explore.sel)
+	if !isremovable(afview)
+		@warn(string("$id: ", MSG_CANNOTREMOVE))
+		return
+	end
+
+	cancel = Gtk.ask_dialog(string(MSG_DELETE, " ($id)?"), "Ok", "Annuler")
+	if cancel; return; end
+	try
+		removelastentry(afview, explore.db, explore.sel)
+	catch e
+		@warn(e)
+	end
+	refresh!(explore)
 	nothing #Known value
 end
 @guarded function cb_mnueditfield(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
@@ -178,23 +198,23 @@ end
 	nothing #Known value
 end
 @guarded function cb_cb_subjects_changed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
-	refresh!(explore::ExploreWnd)
+	refresh!(explore)
 	return #Known value
 end
 @guarded function cb_rb_gradelist_changed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
-	refresh!(explore::ExploreWnd)
+	refresh!(explore)
 	return #Known value
 end
 @guarded function cb_sel_domains_changed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
-	refresh!(explore::ExploreWnd)
+	refresh!(explore)
 	return #Known value
 end
 @guarded function cb_sel_attentes_changed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
-	refresh!(explore::ExploreWnd)
+	refresh!(explore)
 	return #Known value
 end
 @guarded function cb_sel_content_changed(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
-	refresh!(explore::ExploreWnd)
+	refresh!(explore)
 	return #Known value
 end
 
@@ -239,9 +259,9 @@ function ExploreWnd(dbpath=PATH_DB[])
 		push!(mnuaddentry, "activate", accel_group, GConstants.GDK_KEY_A,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
-#		push!(mnuremoveentry, "activate", accel_group, GConstants.GDK_KEY_D,
-#			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
-#		)
+		push!(mnuremoveentry, "activate", accel_group, GConstants.GDK_KEY_X,
+			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
+		)
 		push!(mnueditfield, "activate", accel_group, GConstants.GDK_KEY_E,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
@@ -281,8 +301,6 @@ function ExploreWnd(dbpath=PATH_DB[])
 		c1 = _Gtk.TreeViewColumn("ID", rTxt, Dict("text"=>1))
 		c2 = _Gtk.TreeViewColumn("Attente", rTxt, Dict("text"=>2))
 		push!(tv_attentes, c1, c2)
-		sel = GAccessor.selection(tv_attentes)
-#		sel = GAccessor.mode(sel, GtkSelectionMode.MULTIPLE)
 
 	pane_da = _Gtk.Paned(false, 0) #_Gtk.Box(false, 0) #hbox for domains & "attentes"
 		push!(vbox, pane_da)
@@ -315,7 +333,13 @@ function ExploreWnd(dbpath=PATH_DB[])
 		c2 = _Gtk.TreeViewColumn("Contenu d'apprentissage", rTxt_mline, Dict("text"=>2))
 		push!(tv_content, c1, c2)
 		set_gtk_property!(tv_content, "vexpand", true)
-		sel = GAccessor.selection(tv_content)
+
+	#Set single-selction ("browse"):
+	for w in (tv_content, tv_content, tv_content)
+		sel = GAccessor.selection(w)
+		sel = GAccessor.mode(sel, GtkSelectionMode.BROWSE)
+	end
+
 
 	#Create container object & callbacks:
 	db = open_database(dbpath, "r+")
@@ -333,8 +357,8 @@ function ExploreWnd(dbpath=PATH_DB[])
 	signal_connect(cb_mnucopy, mnucopy, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnucopyall, mnucopyall, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnuaddentry, mnuaddentry, "activate", Nothing, (), false, explore)
+	signal_connect(cb_mnuremoveentry, mnuremoveentry, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnueditfield, mnueditfield, "activate", Nothing, (), false, explore)
-
 
 	signal_connect(cb_cb_subjects_changed, cb_subjects, "changed", Nothing, (), false, explore)
 	for rb in rb_grade_list

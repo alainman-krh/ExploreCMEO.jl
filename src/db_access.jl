@@ -46,7 +46,7 @@ const AID_DESCR_SHORT = "DESCR_SHORT"
 getpath_subject(sel::ExploreSelection) = "/$(sel.subject)"
 function getpath_grade(sel::ExploreSelection)
 	pfx = getpath_subject(sel)
-	gstr = _getid_grade(sel.grade_idx)
+	gstr = getid_grade(sel.grade_idx)
 	return "$pfx/$gstr"
 end
 function getpath_domains(sel::ExploreSelection)
@@ -149,7 +149,7 @@ writea_descr(grp, v::String) = write_attr(grp, AID_DESCR, v)
 writea_shortdescr(grp, v::String) = write_attr(grp, AID_DESCR_SHORT, v)
 
 function writeds_safe(grp::HDF5.HDF5Group, name::String, v)
-#	if HDF5.exists(grp, name); ; end
+	if HDF5.exists(grp, name); HDF5.o_delete(grp, name); end
 	HDF5.d_write(grp, name, v)
 	return
 end
