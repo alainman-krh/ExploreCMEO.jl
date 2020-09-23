@@ -1,6 +1,6 @@
 # ExploreCMEO.jl: Explorer les curriculums du Ministère (MÉO)
 
-| <img src="http://raw.githubusercontent.com/alainman-krh/ExploreCMEODonnees.jl/master/images/ExploreCMEO_fleche.png" width="425"> |
+| <img src="https://raw.githubusercontent.com/alainman-krh/ExploreCMEODonnees.jl/master/images/ExploreCMEO_fleche.png" width="850"> |
 | :---: |
 
 ## Description
