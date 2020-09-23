@@ -93,6 +93,20 @@ getlabelledid(fv::AbstractFieldView, sel::ExploreSelection) =
 	string(getlabel(fv), " ", getid(fv, sel))
 
 
+#==Creating ExploreCMEO launcher
+===============================================================================#
+function get_launcher_cmd()
+	launcherpath = abspath(joinpath(@__DIR__, "..", "lancer_explorecmeo.jl"))
+	juliacmd = joinpath(Sys.BINDIR::String, Base.julia_exename())
+	return string("\"", juliacmd, "\" -L \"", launcherpath, "\"")
+end
+function show_launcher_info()
+	cmd = get_launcher_cmd()
+	@info("Cible:\n$cmd")
+	return
+end
+
+
 #==Accessing database file
 ===============================================================================#
 function open_database(filepath::String, mode::String; log::Bool=true)
