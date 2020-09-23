@@ -22,5 +22,5 @@ test = ["Test"]
 Cairo = "0.6, 1.0"
 Gtk = "0.18, 1.0"
 HDF5 = "0.12"
-BinDeps = "0.8"
+BinDeps = "0.8, 1.0"
 julia = "1"
