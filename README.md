@@ -3,6 +3,7 @@
 | <img src="https://raw.githubusercontent.com/alainman-krh/ExploreCMEODonnees.jl/master/images/ExploreCMEO_fleche.png" width="850"> |
 | :---: |
 
+<a name="Description"></a>
 ## Description
 
 ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissages des Curriculums du Ministère de l'Éducation de l'Ontario (MÉO).
@@ -12,6 +13,14 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
  - Copie des données plus facile!
    - Ex: pas besoin de ré-assembler les contenus d'apprentissage qui ont des bris de ligne dans les .pdf.
 
+## Table des matières
+ 1. [Description](#Description)
+ 1. [Installation](#Installation)
+    1. [Installation: Étapes supplémentaires (Windows)](#InstallationWin)
+ 1. [Info: Certains sous-modules clés](#SousModules)
+ 1. [Problèmes identifiés](#Problemes)
+
+<a name="Installation"></a>
 ## Installation
  1. Télécharger & installer une version récente du language de programmation (scientifique) Julia:
     - <https://julialang.org/downloads/></br>
@@ -25,6 +34,7 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
 
 ***ATTENTION: Le lancement de ExploreCMEO sera très lent (peut-être dizaine de minutes) la première fois. Ceci est une limitation du système d'exécution de Julia lorsqu'on utilise des "packages" plus complexes (GTK/Cairo).***
 
+<a name="InstallationWin"></a>
 ### Installation: Étapes supplémentaires (Windows)
 Pour faciliter l'utilisation sous windows, il faut créer un raccourci pour exécuter le fichier `lancer_explorecmeo.jl`:
 
@@ -35,15 +45,16 @@ Pour faciliter l'utilisation sous windows, il faut créer un raccourci pour exé
  - **Démarrer dans:** `[DOSSIER DONNÉES]`
    - Choisir le `[DOSSIER DONNÉES]` désiré. C'est où ExploreCMEO va télécharger/entreposer les données du curriculum.
 
-## Certains sous-modules clés
+<a name="SousModules"></a>
+## Info: Certains sous-modules clés
 ExploreCMEO.jl dépend de certains modules clés:
  - [ExploreCMEODonnées.jl](https://github.com/alainman-krh/ExploreCMEODonnees.jl): Contient le fichier contentant les données du curriculum.
  - Gtk.jl/GTK+ 3: Interface graphique portable (Windows/Linux/macOS/...).
  - HDF5.jl/HDF5: Format de données hierachique (bien adapté pour l'information structurée du curriculum).
    - Conçu par le "National Center for Supercomputing Applications".
 
-<a name="ProbConnus"></a>
-## Problèmes connus
+<a name="Problemes"></a>
+## Problèmes identifiés
  - À faire: Il faut une connection à l'internet pour télécharger les données du curriculum à la première exécution de l'application ExploreCMEO.
  - Cette application fut développé à la vitesse. Plusieurs éléments ne se comportent donc pas de façon typique pour un interface graphique (GUI) moderne.
  - De plus, je ne suis pas un expert dans le système GTK. Plusieures fonctionnalités ne sont donc pas parfaitement façonnées.
