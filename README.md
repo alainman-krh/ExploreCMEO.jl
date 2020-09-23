@@ -21,7 +21,7 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
     - Insérer la commande suivante dans la console `julia>`.</br>
 `using Pkg; Pkg.add(url="https://github.com/alainman-krh/ExploreCMEO.jl")`
     - INFO: Dans la console pour Windows, le bouton de droite peut être utilisé pour coller la commande.
-    - Ne pas oublier d'utiliser la touche `\<ENTER\>` pour exécuter la commande.
+    - Ne pas oublier d'utiliser la touche `<ENTER>` pour exécuter la commande.
 
 ***ATTENTION: Le lancement de ExploreCMEO sera très lent (peut-être dizaine de minutes) la première fois. Ceci est une limitation du système d'exécution de Julia lorsqu'on utilise des "packages" plus complexes (GTK/Cairo).***
 
