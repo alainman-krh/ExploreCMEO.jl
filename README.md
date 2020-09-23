@@ -41,17 +41,17 @@ Pour faciliter l'utilisation sous windows, il faut créer un raccourci lancer Ex
 Premièrement, il faut générer l'expression qu exécutera le script `lancer_explorecmeo.jl`:
  1. À partir de la console console `julia>`, exécuter:</br>
 `using ExploreCMEO; ExploreCMEO.show_launcher_info()`
-    1. Le résultat devrait ressembler un peu comme:</br>
+    - Le résultat devrait ressembler un peu comme:</br>
 `"C:\Users\alain\AppData\Local\Programs\Julia 1.5.1\bin\julia.exe" -L "C:\Users\alain\.julia\packages\ExploreCMEO\9WB2s\lancer_explorecmeo.jl"`
-    1. C'est ce qu'on appèle l'expression de lancement:</br>
-`[EXPR_LANCEMENT] = C:\Users\alain\AppData\Local\ [...]`
+    - C'est ce qu'on appèle l'expression de lancement:</br>
+`[EXPR_LANCEMENT] = "C:\Users\alain\AppData\Local\ [...]`
 
 Ensuite, il faut créer le raccourci windows lui-même:
  1. Sur le "bureau" de l'ordinateur:
     - Cliquer du `<bouton-droite>(souris)`.
     - Sélectionner: `Nouveau > Raccourci`.
-    - **Emplacement de l'élément (Cible):** `[EXPR_LANCEMENT]`
-      - **NOTE:** il  ne faut pas écrire "`[EXPR_LANCEMENT]`". Il faut plutôt copier lav valeur qu'on vient d'obtenir en exécutant `show_launcher_info()`.
+    - **Emplacement de l'élément (Cible):** `[EXPR_LANCEMENT]`</br>
+**NOTE:** il  ne faut pas écrire "`[EXPR_LANCEMENT]`". Il faut plutôt copier la valeur qu'on vient d'obtenir en exécutant `show_launcher_info()`.
     - Cliquer `Suivant`.
     - Nom du raccourci: `ExploreCMEO`.
     - Cliquer `Terminer`.
