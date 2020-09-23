@@ -10,7 +10,7 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
  - Exploration plus rapide qu'avec les sources pdf ou web.
  - Schéma de numérotation cohérent pour domaines/attentes/contenus pour tous les sujets.
  - Copie des données plus facile!
-   - Ex: pas besoin de ré-assembler les contenus d'apprentissage qui ont des bris de ligne dans les .pdf
+   - Ex: pas besoin de ré-assembler les contenus d'apprentissage qui ont des bris de ligne dans les .pdf.
 
 ## Installation
  1. Télécharger & installer une version récente du language de programmation (scientifique) Julia:
@@ -22,6 +22,7 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
 ```
 using Pkg; Pkg.add(url="https://github.com/alainman-krh/ExploreCMEO.jl")
 ```
+<!--Laisser ligne vide pour ne pas confondre Markdown-->
     - INFO: Dans la console pour Windows, le bouton de droite peut être utilisé pour coller la commande.
     - Ne pas oublier d'utiliser la touche `\<ENTER\>` pour exécuter la commande.
 
