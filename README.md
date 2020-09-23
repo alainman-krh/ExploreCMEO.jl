@@ -18,11 +18,8 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
 (Initié par un groupe de recherche du MIT).
  1. Lancer cette nouvelle installation de Julia.
  1. Ajouter le "package" à partir de la fenêtre Julia:
-    - Insérer la commande suivante dans la console `julia>`.
-```
-using Pkg; Pkg.add(url="https://github.com/alainman-krh/ExploreCMEO.jl")
-```
-<!--Laisser ligne vide pour ne pas confondre Markdown-->
+    - Insérer la commande suivante dans la console `julia>`.</br>
+`using Pkg; Pkg.add(url="https://github.com/alainman-krh/ExploreCMEO.jl")`
     - INFO: Dans la console pour Windows, le bouton de droite peut être utilisé pour coller la commande.
     - Ne pas oublier d'utiliser la touche `\<ENTER\>` pour exécuter la commande.
 
