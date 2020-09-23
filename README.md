@@ -36,14 +36,32 @@ ExploreCMEO facilite le visionnement des attentes et les contenus d'apprentissag
 
 <a name="InstallationWin"></a>
 ### Installation: Étapes supplémentaires (Windows)
-Pour faciliter l'utilisation sous windows, il faut créer un raccourci pour exécuter le fichier `lancer_explorecmeo.jl`:
+Pour faciliter l'utilisation sous windows, il faut créer un raccourci lancer ExploreCMEO.
 
-***À faire: Expliquer comment.***
+Premièrement, il faut générer l'expression qu exécutera le script `lancer_explorecmeo.jl`:
+ 1. À partir de la console console `julia>`, exécuter:</br>
+`using ExploreCMEO; ExploreCMEO.show_launcher_info()`
+    1. Le résultat devrait ressembler un peu comme:</br>
+`"C:\Users\alain\AppData\Local\Programs\Julia 1.5.1\bin\julia.exe" -L "C:\Users\alain\.julia\packages\ExploreCMEO\9WB2s\lancer_explorecmeo.jl"`
+    1. C'est ce qu'on appèle l'expression de lancement:</br>
+`[EXPR_LANCEMENT] = C:\Users\alain\AppData\Local\ [...]`
 
- - **Cible:** `"C:\[DOSSIER LOGICIEL JULIA]\bin\julia.exe" -L "lancer_explorecmeo.jl"`
-   - `[DOSSIER LOGICIEL JULIA]` peut être obtenu en cliquant du bouton de droite sur l'icône Julia et en sélectionnant `Propriétés`.
- - **Démarrer dans:** `[DOSSIER DONNÉES]`
-   - Choisir le `[DOSSIER DONNÉES]` désiré. C'est où ExploreCMEO va télécharger/entreposer les données du curriculum.
+Ensuite, il faut créer le raccourci windows lui-même:
+ 1. Sur le "bureau" de l'ordinateur:
+    - Cliquer du `<bouton-droite>(souris)`.
+    - Sélectionner: `Nouveau > Raccourci`.
+    - **Emplacement de l'élément (Cible):** `[EXPR_LANCEMENT]`
+      - **NOTE:** il  ne faut pas écrire "`[EXPR_LANCEMENT]`". Il faut plutôt copier lav valeur qu'on vient d'obtenir en exécutant `show_launcher_info()`.
+    - Cliquer `Suivant`.
+    - Nom du raccourci: `ExploreCMEO`.
+    - Cliquer `Terminer`.
+ 1. Sur le nouveau raccourci `ExploreCMEO` ("bureau" de l'ordinateur):
+    - Cliquer du `<bouton-droite>(souris)`.
+    - Sélectionner: `Propriétés`.
+    - **Démarrer dans:** `%USERPROFILE%\Documents`
+      - Ce paramêtre contrôle où ExploreCMEO va télécharger/entreposer les données du curriculum.
+      - Il est donc possible de choisir n'importe quel autre emplacement désiré pour entreposer les données.
+    - Cliquer `OK`.
 
 <a name="SousModules"></a>
 ## Info: Certains sous-modules clés
