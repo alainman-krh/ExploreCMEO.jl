@@ -109,6 +109,11 @@ end
 
 #==Accessing database file
 ===============================================================================#
+function download_database(destfilepath::String)
+	@info("Téléchargement de données:\n$URL_PUBLISHEDDATA")
+	run(BinDeps.download_cmd(URL_PUBLISHEDDATA, destfilepath))
+	return
+end
 function open_database(filepath::String, mode::String; log::Bool=true)
 	filepath = abspath(filepath)
 	db = HDF5.h5open(filepath, mode)
