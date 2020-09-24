@@ -118,10 +118,10 @@ function ExploreEditDlg(explore::ExploreWnd)
 		set_gtk_property!(filler, "hexpand-set", true)
 	btn_ok = _Gtk.Button("Ok")
 		push!(btnbox, btn_ok)
-	btn_cancel = _Gtk.Button("Annuler")
-		push!(btnbox, btn_cancel)
 	btn_apply = _Gtk.Button("Appliquer")
 		push!(btnbox, btn_apply)
+	btn_cancel = _Gtk.Button("Annuler")
+		push!(btnbox, btn_cancel)
 #	gtk_container_child_set_property #Wrapped in GAccessor.property:
 #	GAccessor.property(btnbox, btn_ok, "pack-type", GtkPackType.END) #Crashes; expects ptr for value
 #	GAccessor.property(btnbox, btn_cancel, "pack-type", GtkPackType.END)
@@ -162,7 +162,7 @@ function _show(dlg::ExploreEditDlg)
 	#Update ent_fieldinfo:
 	_subject = strip(dlg.sel.subject)
 	labelfieldinfo = ""
-	if "" == _subject
+	if isempty_subject(_subject)
 		success = false
 		labelfieldinfo = MSG_NOSUBJECT
 	elseif !success

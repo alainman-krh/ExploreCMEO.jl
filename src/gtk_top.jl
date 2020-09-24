@@ -11,6 +11,36 @@ const MSG_DELETE = "Supprimer dernière entrée"
 ===============================================================================#
 
 
+#==Helper functions
+===============================================================================#
+function _subjects_updatecb(explore::ExploreWnd)
+	ensure_updating(explore) #Inhibit infinite recursion
+	sel = explore.sel #Alias
+	subject_list = read_subjects(explore.db)
+		if length(subject_list)<1; subject_list = ["Français"]; end
+		empty!(explore.cb_subjects)
+		for v in subject_list
+		  push!(explore.cb_subjects, v)
+		end
+		idx = findfirst((x)->(sel.subject==x), subject_list)
+		if isnothing(idx); idx = 1; end
+		set_gtk_property!(explore.cb_subjects, "active", idx-1) #Set active element
+	return
+end
+function subjects_updatecb(::WSNormal, explore::ExploreWnd)
+	state_set!(explore, WSUpdating())
+	try
+		_subjects_updatecb(explore)
+	catch e #Should not happen
+		@warn(e)
+		rethrow(e)
+	finally #Make sure we recover
+		state_set!(explore, WSNormal())
+	end
+	return
+end
+
+
 #==GUI scanners/builders
 ===============================================================================#
 function _scan(explore::ExploreWnd)
@@ -58,17 +88,8 @@ function _scan(explore::ExploreWnd)
 end
 
 function _populate(explore::ExploreWnd)
+	_subjects_updatecb(explore) #calls ensure_updating
 	sel = explore.sel #Alias
-
-	subject_list = read_subjects(explore.db)
-		if length(subject_list)<1; subject_list = ["Français"]; end
-		empty!(explore.cb_subjects)
-		for v in subject_list
-		  push!(explore.cb_subjects, v)
-		end
-		idx = findfirst((x)->(sel.subject==x), subject_list)
-		if isnothing(idx); idx = 1; end
-		set_gtk_property!(explore.cb_subjects, "active", idx-1) #Set active element
 
 	sel.grade_idx = max(1, min(sel.grade_idx, length(explore.rb_grade_list)))
 	Gtk.gtk_toggle_button_set_active(explore.rb_grade_list[sel.grade_idx], true)
@@ -101,7 +122,7 @@ function _populate(explore::ExploreWnd)
 		set_gtk_property!(explore.ent_attentesdesc, "text", descr)
 
 	clist = read_content_list(explore.db, sel)
-		if isnothing(clist)||isempty(alist); clist = [DATA_NOCONTENT]; end
+		if isnothing(clist)||isempty(clist); clist = [DATA_NOCONTENT]; end
 		sel.content_idx = clamp(sel.content_idx, 1, length(clist))
 		descr = ""
 		empty!(explore.ls_content)
@@ -117,15 +138,14 @@ end
 
 #==State-dependent functions
 ===============================================================================#
-function state_set!(explore::ExploreWnd, state::WndState)
-	explore.state = state
-	return explore
-end
 function refresh!(::WSNormal, explore::ExploreWnd)
 	state_set!(explore, WSUpdating())
 	try
 		_scan(explore)
 		_populate(explore)
+		if isa(explore.editdlg, ExploreEditDlg)
+			show_editdlg(explore)
+		end
 	catch e
 		@warn(e)
 		rethrow(e)
@@ -134,7 +154,6 @@ function refresh!(::WSNormal, explore::ExploreWnd)
 	end
 	return
 end
-refresh!(::WSUpdating, explore::ExploreWnd) = nothing
 
 
 #==Callback wrapper functions
@@ -165,6 +184,19 @@ end
 	@info("Copié tout:\n$copystr")
 	nothing #Known value
 end
+@guarded function cb_mnuaddsubject(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
+	subject = dialog_inputbox("Nouveau sujet:", "")
+	if isnothing(subject); return; end
+	if isempty_subject(subject); return; end
+
+	sel = deepcopy(explore.sel)
+	sel.subject = subject
+	createslot_subject(explore.db, sel)
+	explore.sel.subject = subject #Make active
+	subjects_updatecb(explore) #Make active before "scanning" interface for current value
+	refresh!(explore)
+	nothing
+end
 @guarded function cb_mnuaddentry(w::Ptr{Gtk.GObject}, explore::ExploreWnd)
 	afview = _activefieldview(explore)
 	try
@@ -183,8 +215,8 @@ end
 		return
 	end
 
-	cancel = Gtk.ask_dialog(string(MSG_DELETE, " ($id)?"), "Ok", "Annuler")
-	if cancel; return; end
+	proceed = dialog_confirm(string(MSG_DELETE, " ($id)?"))
+	if !proceed; return; end
 	try
 		removelastentry(afview, explore.db, explore.sel)
 	catch e
@@ -217,6 +249,13 @@ end
 	refresh!(explore)
 	return #Known value
 end
+@guarded function cb_field_focus_changed(w::Ptr{Gtk.GObject}, event::Ptr{Nothing}, explore::ExploreWnd)
+	#Ptr{Nothing}: GdkEventFocus not implementd, so crashes if we don't handle event as pointer!
+
+	#Purpose: Want to update contents of ExploreEditDlg:
+	refresh!(explore) #Excessive, but easier/safer
+	return Cint(true) #Continue handling events
+end
 
 
 #=="Constructors"
@@ -244,6 +283,8 @@ function ExploreWnd(dbpath=PATH_DB[])
 		mnucopy = Gtk_addmenuitem(mnuedit, "Copier")
 		mnucopyall = Gtk_addmenuitem(mnuedit, "Copier Tout")
 		Gtk_addsep(mnuedit)
+		mnuaddsubject = Gtk_addmenuitem(mnuedit, "Nouveau Sujet")
+		Gtk_addsep(mnuedit)
 		mnuaddentry = Gtk_addmenuitem(mnuedit, "Ajouter Entrée")
 		mnuremoveentry = Gtk_addmenuitem(mnuedit, "Supprimer Dernière Entrée")
 		mnueditfield = Gtk_addmenuitem(mnuedit, "Modifier Élément/Champ")
@@ -256,17 +297,17 @@ function ExploreWnd(dbpath=PATH_DB[])
 		push!(mnucopyall, "activate", accel_group, GConstants.GDK_KEY_F,
 			GdkModifierType.GDK_CONTROL_MASK|GdkModifierType.SHIFT, GtkAccelFlags.VISIBLE
 		)
-		push!(mnuaddentry, "activate", accel_group, GConstants.GDK_KEY_A,
+		push!(mnuaddentry, "activate", accel_group, GConstants.GDK_KEY_KP_Add,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
-		push!(mnuremoveentry, "activate", accel_group, GConstants.GDK_KEY_X,
+		push!(mnuremoveentry, "activate", accel_group, GConstants.GDK_KEY_KP_Subtract,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
 		push!(mnueditfield, "activate", accel_group, GConstants.GDK_KEY_E,
 			GdkModifierType.GDK_CONTROL_MASK, GtkAccelFlags.VISIBLE
 		)
 
-	cb_subjects = _Gtk.ComboBoxText()
+	cb_subjects = _Gtk.ComboBoxText(false) #No entry
 		push!(vbox, cb_subjects)
 
 	#Radio buttons for grade:
@@ -356,6 +397,7 @@ function ExploreWnd(dbpath=PATH_DB[])
 	signal_connect(cb_mnufileclose, mnuquit, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnucopy, mnucopy, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnucopyall, mnucopyall, "activate", Nothing, (), false, explore)
+	signal_connect(cb_mnuaddsubject, mnuaddsubject, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnuaddentry, mnuaddentry, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnuremoveentry, mnuremoveentry, "activate", Nothing, (), false, explore)
 	signal_connect(cb_mnueditfield, mnueditfield, "activate", Nothing, (), false, explore)
@@ -370,6 +412,10 @@ function ExploreWnd(dbpath=PATH_DB[])
 	signal_connect(cb_sel_attentes_changed, sel_attentes, "changed", Nothing, (), false, explore)
 	sel_content = GAccessor.selection(explore.tv_content)
 	signal_connect(cb_sel_content_changed, sel_content, "changed", Nothing, (), false, explore)
+
+	for w in [cb_subjects, grp_grades, ent_sourcedoc, tv_domains, tv_attentes, tv_content]
+		signal_connect(cb_field_focus_changed, w, "focus-in-event", Cint, (Ptr{Nothing},), false, explore)
+	end
 
 	#Populate, show & return:
 	refresh!(explore)

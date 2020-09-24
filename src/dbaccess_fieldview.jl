@@ -158,7 +158,6 @@ function _removelastentry(grp, sel::ExploreSelection)
 	if isnothing(grp); throw(ERROR_CANNOTREMOVE); end
 	nelem = reada_nelem(grp)
 	if nelem < 1; throw(ERROR_CANNOTREMOVE); end
-	nelem = reada_nelem(grp)
 	HDF5.o_delete(grp, "$nelem"); nelem -= 1
 	writea_nelem(grp, collect(1:nelem))
 	return

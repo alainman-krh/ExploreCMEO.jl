@@ -159,8 +159,7 @@ end
 #==Validation
 ===============================================================================#
 function validate_subject(sel::ExploreSelection)
-	nosubject = (strip(sel.subject) == "")
-	if nosubject; throw(ERROR_NOSUBJECT); end
+	if isempty_subject(sel.subject); throw(ERROR_NOSUBJECT); end
 	return
 end
 function validate_grade(sel::ExploreSelection)
@@ -322,7 +321,6 @@ end
 function createslot_subject(db::HDF5.HDF5File, sel::ExploreSelection)
 	validate_subject(sel)
 	grp = gopen_create(db, getpath_subject(sel))
-	writea_srcdoc(grp, v)
 	return true
 end
 #Don't really need to explicitly create subject. Create source doc info instead:

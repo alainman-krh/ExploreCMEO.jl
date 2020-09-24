@@ -39,6 +39,13 @@ end
 FieldViewOpts() = FieldViewOpts(true, true, true)
 
 
+#==Validation/Helper functions
+===============================================================================#
+#AbstractString: might have used strip() on string.
+isempty_subject(subject::AbstractString) = (strip(subject) == "")
+isvalid_subject(subject::AbstractString) = !isempty_subject(subject)
+
+
 #==Create identifiers for different curriculum elements (ex: A1.1)
 ===============================================================================#
 function _valididx(args...)

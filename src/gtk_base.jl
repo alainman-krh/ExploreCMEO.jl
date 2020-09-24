@@ -5,6 +5,11 @@ import Gtk: get_gtk_property, set_gtk_property!, signal_connect, @guarded
 import Gtk: GConstants.GtkOrientation, GConstants.GtkSelectionMode
 import Gtk: GConstants, GAccessor
 import Gtk: GConstants.GtkAlign
+import Gtk: GConstants.GtkButtonsType #NONE, OK, CLOSE, CANCEL, YES_NO, OK_CANCEL
+import Gtk: GConstants.GtkResponseType #NONE, REJECT, ACCEPT, DELETE_EVENT, OK, CANCEL, CLOSE, YES, NO, APPLY, HELP
+import Gtk: GConstants.GtkMessageType #INFO, WARNING, QUESTION, ERROR, OTHER
+import Gtk: GConstants.GtkDialogFlags
+import Gtk: GConstants.GtkDirectionType #TAB_FORWARD, TAB_BACKWARD, UP, DOWN, LEFT, RIGHT
 import Gtk: GConstants.GtkPackType #START, END
 import Gtk: GConstants.GtkWrapMode #NONE, CHAR, WORD, WORD_CHAR
 import Gtk: GConstants.GtkScrollablePolicy #MINIMUM, NATURAL
@@ -18,12 +23,19 @@ import Gtk: GConstants.GtkAccelFlags #VISIBLE, LOCKED, MASK
 abstract type AbstractDialog; end
 struct NoDialog <: AbstractDialog; end
 
-abstract type WndState end #Identifies current state of the Explore window.
-struct WSNormal <: WndState; end #Default state
-struct WSUpdating <: WndState; end #Updating
+abstract type AbstractState end #Generic state object
+
+abstract type AbstractWndState <: AbstractState end #Identifies current state of an ExploreWnd.
+struct WSNormal <: AbstractWndState; end #Default state
+struct WSUpdating <: AbstractWndState; end #Updating
+
+"Exception: Invalid state"
+struct InvalidState <: Exception
+	curstate::AbstractState
+end
 
 mutable struct ExploreWnd
-	state::WndState
+	state::AbstractWndState
 	sel::ExploreSelection
 	db::HDF5.HDF5File
 	wnd::_Gtk.Window
@@ -189,6 +201,23 @@ function _activefieldview(explore::ExploreWnd)
 end
 
 
+#==Internal "public" interface
+===============================================================================#
+#ensure_updating: Make sure code doesn't run unless in a "WSUpdating" state.
+#otherwise, an infinite recursion might happen.
+function ensure_updating(explore)
+	if !isa(explore.state, WSUpdating); throw(InvalidState(explore.state)); end
+	return
+end
+function state_set!(explore::ExploreWnd, state::AbstractWndState)
+	explore.state = state
+	return explore
+end
+
+subjects_updatecb!(::WSUpdating, explore::ExploreWnd) = nothing #Inhibit infinite recursion
+subjects_updatecb(explore::ExploreWnd) = subjects_updatecb(explore.state, explore::ExploreWnd)
+
+
 #==Public interface
 ===============================================================================#
 
@@ -197,6 +226,7 @@ function Base.show(io::IO, ::MIME"text/plain", explore::ExploreWnd)
 	print(io, ExploreWnd, "(\"", explore.db.filename, "\")")
 end
 
+refresh!(::WSUpdating, explore::ExploreWnd) = nothing #Inhibit infinite recursion
 refresh!(explore::ExploreWnd) = refresh!(explore.state, explore)
 
 Base.close(dlg::NoDialog) = nothing
